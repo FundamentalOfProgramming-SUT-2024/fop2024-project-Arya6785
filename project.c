@@ -11,6 +11,8 @@
 #define MAX_USERNAME_LEN 50
 #define MAX_PASSWORD_LEN 50
 #define MAX_EMAIL_LEN 250
+#define FILE_NAME "users.txt"
+void menu ();
 int basefood = 3;
 typedef struct{
     int positionx;
@@ -1607,7 +1609,7 @@ if (numrooms==7 || numrooms==8){
         }  
         
         }
-        else if (y1 == y1){
+        else if (y1 == y2){
                         mvprintw(y1,x1, "#");
 
         }
@@ -2647,19 +2649,24 @@ typedef struct {
 
 player players[MAX_players];
 int player_count = 0;
-bool validate_email(const char *email){
-    const char *at = strchr (email, '@');
-    const char *dot = strchr (email, '.');
-    return at && dot && at < dot;
+int validate_email(const char *email){
+        const char *at = strchr(email, '@');
+    if (at == NULL || at == email) return 0; 
+
+    const char *dot = strchr(at, '.');
+    if (dot == NULL || dot == at + 1) return 0;
+
+    return 1;
 }
 
 int check_user_credentials(const char *username, const char *password) {
-    FILE *file = fopen("players.txt", "r");
+    int status =0;
+    FILE *file = fopen(FILE_NAME, "r");
     if (file == NULL) {
         return -1;
     }
 
-    char line[150];
+    char line[200];
     int username_found = 0;
 
     while (fgets(line, sizeof(line), file)) {
@@ -2673,29 +2680,44 @@ int check_user_credentials(const char *username, const char *password) {
 
             if (file_password && strcmp(password, file_password) == 0) {
                 fclose(file);
-                return 1; 
+                status=1;
+                return status; 
             }
         }
     }
 
     fclose(file);
-    return username_found ? 0 : -1;
+    if(username_found){
+        status =0;
+        
+    }
+    else{
+        status= -1;
+    }
+    return status;
+    
 }
-bool validate_password(const char *password){
-    if (strlen(password)< 7)
-        return false;
-        bool digit = false , upper = false , lower = false;
-        for (int i =0 ; i < strlen (password); i++)
-        {
-            if (isdigit(password[i])) digit = true;
-            if (isupper(password[i])) upper = true;
-            if (islower(password[i])) lower = true;
+int validate_password(const char *password){
+    int has_upper = 0, has_lower = 0, has_digit = 0;
+
+    if (strlen(password) < 7) return 0;
+    for (int i = 0; password[i] != '\0'; i++) {
+        if (password[i] >= 'A' && password[i] <= 'Z') {
+            has_upper = 1;
         }
-        return upper && lower && digit;
+        if (password[i] >= 'a' && password[i] <= 'z') {
+            has_lower = 1;
+        }
+        if (password[i] >= '0' && password[i] <= '9') {
+            has_digit = 1;
+        }
+    }
+
+    return has_upper && has_lower && has_digit; 
 }
 
-bool username_exists(const char *username){
-    FILE *file = fopen("players.txt", "r");
+int username_exists(const char *username){
+    FILE *file = fopen(FILE_NAME, "r");
     if (file == NULL) {
         return 0; 
     }
@@ -2713,18 +2735,11 @@ bool username_exists(const char *username){
     fclose(file);
     return 0; 
 }
-void saveplayer (){
-    FILE *file = fopen ("players.txt", "r");
-    if (file) {
-        fwrite (&player_count , sizeof(int), 1, file);
-        fwrite(players , sizeof (player), player_count, file);
-        fclose (file);
-    }
-}
+
 
 void createnewuser ()
 
-{
+{   
     clear();
     refresh();
     player new_user;
@@ -2776,7 +2791,7 @@ void createnewuser ()
         }
     
 
-    FILE *file = fopen("players.txt", "a");
+    FILE *file = fopen(FILE_NAME, "a");
     if (file == NULL) {
         mvprintw(10, 80, "Error opening file for saving user.");
         getch();
@@ -2795,9 +2810,9 @@ void createnewuser ()
 
 void loginplayer(){
     clear();
-    char username [MAX_USERNAME_LEN]={0};
-    char password [MAX_PASSWORD_LEN]= {0};
-    int status;
+    char username[MAX_USERNAME_LEN];
+    char password[MAX_PASSWORD_LEN];
+    int status=1;
      mvprintw(12, 80, "Enter username ( press 'n' to login as a guest): ");
     echo();
     getstr(username);
@@ -2820,12 +2835,14 @@ void loginplayer(){
 
     if (status == 1) {
         mvprintw(16, 80, "Login successful! Press any key to continue.");
+        
     } else if (status == 0) {
         mvprintw(16, 80, "Incorrect password! Please try again.");
     } else if (status == -1) {
         mvprintw(16, 80, "Username not found! Please register first.");
     }
-    
+    getch();
+    menu();
 
 
 }
@@ -2884,6 +2901,7 @@ void menu ()
             getch();
             endwin();
             return;
+            
             
         }
         menu();
@@ -3106,7 +3124,7 @@ int pregamemenu(){
             mvprintw(5, 50,"Exiting the program. Goodbye!" );
             getch();
             endwin();
-            return;
+            
             
         }
         menu();
@@ -3122,7 +3140,7 @@ int startnewgame(){
     initscr();
     noecho();
     curs_set(FALSE);
-    if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+    /*if (SDL_Init(SDL_INIT_AUDIO) < 0) {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
         return;
     }
@@ -3142,7 +3160,7 @@ int startnewgame(){
         }
 
         Mix_PlayMusic(music, -1);
-    }
+    }*/
 
    
     if (floornumber>0){
